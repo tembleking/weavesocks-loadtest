@@ -2,12 +2,13 @@ package client
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"golang.org/x/net/publicsuffix"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"time"
+
+	"github.com/pkg/errors"
+	"golang.org/x/net/publicsuffix"
 )
 
 type Client interface {
@@ -18,7 +19,7 @@ type Client interface {
 }
 
 type client struct {
-	host   string
+	host   *url.URL
 	client *http.Client
 }
 
@@ -36,19 +37,28 @@ func New(host string) (c *client, err error) {
 		err = errors.Wrap(err, "error creating the cookie jar")
 		return
 	}
+
+	hostUrl, err := url.Parse(host)
+
+	if err != nil {
+		err = errors.Wrap(err, "invalid url")
+		return
+	}
+
 	c = &client{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 			Jar:     jar,
 		},
-		host: host,
+		host: hostUrl,
 	}
 
 	return
 }
 
 func (c *client) Login(user, password string) (err error) {
-	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/login", c.host), nil)
+	loginUrl, _ := c.host.Parse("/login")
+	request, _ := http.NewRequest(http.MethodGet, loginUrl.String(), nil)
 	request.SetBasicAuth(user, password)
 
 	response, err := c.client.Do(request)
@@ -61,27 +71,29 @@ func (c *client) Login(user, password string) (err error) {
 	return
 }
 
-func (c *client) Get(path string) (err error) {
-	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", c.host, path), nil)
+func (c *client) Get(endpoint string) (err error) {
+	requestUrl, _ := c.host.Parse(fmt.Sprintf("/%s", endpoint))
+	request, err := http.NewRequest(http.MethodGet, requestUrl.String(), nil)
 	if err != nil {
-		err = errors.Wrapf(err, "could not create GET request to endpoint %s/%s", c.host, path)
+		err = errors.Wrapf(err, "could not create GET request to endpoint %s", requestUrl.String())
 		return
 	}
 	request.Close = true
 
 	response, err := c.client.Do(request)
 	if err != nil {
-		err = errors.Wrapf(err, "error with GET request to %s/%s", c.host, path)
+		err = errors.Wrapf(err, "error with GET request to %s/%s", c.host, endpoint)
 		return
 	}
 	defer response.Body.Close()
 	return
 }
 
-func (c *client) Post(path string, values url.Values) (err error) {
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s", c.host, path), nil)
+func (c *client) Post(endpoint string, values url.Values) (err error) {
+	requestUrl, _ := c.host.Parse(fmt.Sprintf("/%s", endpoint))
+	request, err := http.NewRequest(http.MethodPost, requestUrl.String(), nil)
 	if err != nil {
-		err = errors.Wrapf(err, "could not create POST request to endpoint %s/%s", c.host, path)
+		err = errors.Wrapf(err, "could not create POST request to endpoint %s", requestUrl.String())
 		return
 	}
 	request.Close = true
@@ -89,25 +101,25 @@ func (c *client) Post(path string, values url.Values) (err error) {
 
 	response, err := c.client.Do(request)
 	if err != nil {
-		err = errors.Wrapf(err, "error with POST request to %s/%s", c.host, path)
+		err = errors.Wrapf(err, "error with POST request to %s", requestUrl.String())
 		return
 	}
 	defer response.Body.Close()
 	return
 }
 
-func (c *client) Delete(path string) (err error) {
-
-	request, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/%s", c.host, path), nil)
+func (c *client) Delete(endpoint string) (err error) {
+	requestUrl, _ := c.host.Parse(fmt.Sprintf("/%s", endpoint))
+	request, err := http.NewRequest(http.MethodDelete, requestUrl.String(), nil)
 	if err != nil {
-		err = errors.Wrapf(err, "error creating DELETE request to endpoint %s/%s", c.host, path)
+		err = errors.Wrapf(err, "error creating DELETE request to endpoint %s", requestUrl.String())
 		return
 	}
 	request.Close = true
 
 	response, err := c.client.Do(request)
 	if err != nil {
-		err = errors.Wrapf(err, "error requesting endpoint %s/%s", c.host, path)
+		err = errors.Wrapf(err, "error requesting endpoint %s", requestUrl.String())
 		return
 	}
 	defer response.Body.Close()

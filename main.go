@@ -16,9 +16,10 @@
 package main
 
 import (
-	"github.com/tembleking/weavesocks-loadtest/cmd"
 	"math/rand"
 	"time"
+
+	"github.com/tembleking/weavesocks-loadtest/cmd"
 )
 
 func main() {

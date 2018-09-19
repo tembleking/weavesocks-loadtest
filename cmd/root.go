@@ -18,9 +18,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/tembleking/weavesocks-loadtest/pkg/client"
-	"github.com/tembleking/weavesocks-loadtest/pkg/types"
 	"log"
 	"math/rand"
 	"net/http"
@@ -29,7 +26,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/tembleking/weavesocks-loadtest/pkg/client"
+	"github.com/tembleking/weavesocks-loadtest/pkg/types"
 )
 
 var rootCmd = &cobra.Command{
@@ -88,7 +88,9 @@ func Run(cmd *cobra.Command, args []string) {
 }
 
 func getRandomItemInCatalog(host string) (id string, err error) {
-	response, err := http.Get(fmt.Sprintf("%s/catalogue", host))
+	hostUrl, _ := url.Parse(host)
+	catalogUrl, _ := hostUrl.Parse("/catalogue")
+	response, err := http.Get(catalogUrl.String())
 	if err != nil {
 		err = errors.Wrap(err, "error retrieving the catalog")
 		return
