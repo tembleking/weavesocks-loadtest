@@ -1,0 +1,7 @@
+version: "3"
+
+services:
+  weavesocks-loadtest:
+    build: .
+    image: weavesocks-loadtest
+    network_mode: "host"
