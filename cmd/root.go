@@ -16,6 +16,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -156,11 +157,13 @@ func clientRoutine(wg *sync.WaitGroup, maxRequests int, host string, randomItemI
 		}
 		numRequests++
 
-		values := url.Values{
-			"id":       []string{randomItemId},
-			"quantity": []string{"1"},
+		cartRequest := types.CartRequest{
+			ID:       randomItemId,
+			Quantity: 1,
 		}
-		err = c.Post("cart", values)
+		buff := bytes.NewBuffer([]byte{})
+		json.NewEncoder(buff).Encode(cartRequest)
+		err = c.Post("cart", "application/json", buff)
 		if err != nil {
 			log.Println(err)
 		}
@@ -172,7 +175,7 @@ func clientRoutine(wg *sync.WaitGroup, maxRequests int, host string, randomItemI
 		}
 		numRequests++
 
-		err = c.Post("orders", nil)
+		err = c.Post("orders", "", nil)
 		if err != nil {
 			log.Println(err)
 		}

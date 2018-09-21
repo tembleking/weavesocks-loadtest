@@ -11,3 +11,8 @@ type CatalogElement struct {
 	Count       int      `json:"count,omitempty"`
 	Tag         []string `json:"tag,omitempty"`
 }
+
+type CartRequest struct {
+	ID       string `json:"id"`
+	Quantity int    `json:"quantity"`
+}

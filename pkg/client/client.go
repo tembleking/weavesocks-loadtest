@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -89,15 +90,17 @@ func (c *client) Get(endpoint string) (err error) {
 	return
 }
 
-func (c *client) Post(endpoint string, values url.Values) (err error) {
+func (c *client) Post(endpoint string, contentType string, body io.Reader) (err error) {
 	requestUrl, _ := c.host.Parse(fmt.Sprintf("/%s", endpoint))
-	request, err := http.NewRequest(http.MethodPost, requestUrl.String(), nil)
+	request, err := http.NewRequest(http.MethodPost, requestUrl.String(), body)
 	if err != nil {
 		err = errors.Wrapf(err, "could not create POST request to endpoint %s", requestUrl.String())
 		return
 	}
 	request.Close = true
-	request.PostForm = values
+	if contentType != "" {
+		request.Header.Set("Content-Type", contentType)
+	}
 
 	response, err := c.client.Do(request)
 	if err != nil {
