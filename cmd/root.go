@@ -75,20 +75,20 @@ func Run(cmd *cobra.Command, args []string) {
 	wg := sync.WaitGroup{}
 
 	fmt.Println("Running", *numOfClients, "clients with", *numOfRequests, "requests per clientRoutine to", *hostName, "...")
-	randomItemId, err := getRandomItemInCatalog(*hostName)
+	catalog, err := getCatalog(*hostName)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	for i := 0; i < *numOfClients; i++ {
 		wg.Add(1)
-		go clientRoutine(&wg, *numOfRequests, *hostName, randomItemId)
+		go clientRoutine(&wg, *numOfRequests, *hostName, catalog)
 	}
 
 	wg.Wait()
 }
 
-func getRandomItemInCatalog(host string) (id string, err error) {
+func getCatalog(host string) (catalog types.Catalog, err error) {
 	hostUrl, _ := url.Parse(host)
 	catalogUrl, _ := hostUrl.Parse("/catalogue")
 	response, err := http.Get(catalogUrl.String())
@@ -103,20 +103,21 @@ func getRandomItemInCatalog(host string) (id string, err error) {
 		return
 	}
 
-	catalog := types.Catalog{}
-
 	err = json.NewDecoder(response.Body).Decode(&catalog)
 
 	if err != nil {
 		err = errors.Wrap(err, "error decoding the catalog response")
 		return
 	}
-
-	choosenCatalogElement := catalog[rand.Intn(len(catalog))]
-	return choosenCatalogElement.ID, err
+	return
 }
 
-func clientRoutine(wg *sync.WaitGroup, maxRequests int, host string, randomItemId string) {
+func getRandomItemInCatalog(catalog types.Catalog) (id string) {
+	choosenCatalogElement := catalog[rand.Intn(len(catalog))]
+	return choosenCatalogElement.ID
+}
+
+func clientRoutine(wg *sync.WaitGroup, maxRequests int, host string, catalog types.Catalog) {
 	defer wg.Done()
 
 	c, err := client.New(host)
@@ -126,6 +127,7 @@ func clientRoutine(wg *sync.WaitGroup, maxRequests int, host string, randomItemI
 	}
 
 	for numRequests := 0; numRequests < maxRequests; {
+		randomItemId := getRandomItemInCatalog(catalog)
 
 		err = c.Get("")
 		if err != nil {
